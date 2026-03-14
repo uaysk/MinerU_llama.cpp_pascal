@@ -23,6 +23,16 @@ from mineru.utils.engine_utils import get_vlm_engine
 from mineru.utils.hash_utils import str_sha256
 
 
+def get_service_defaults() -> tuple[str, str]:
+    default_backend = os.getenv("MINERU_DEFAULT_BACKEND", "hybrid-auto-engine")
+    default_server_url = (
+        os.getenv("MINERU_OPENAI_SERVER_URL")
+        or os.getenv("MINERU_VL_SERVER")
+        or "http://localhost:30000"
+    )
+    return default_backend, default_server_url
+
+
 async def parse_pdf(doc_path, output_dir, end_page_id, is_ocr, formula_enable, table_enable, language, backend, url):
     os.makedirs(output_dir, exist_ok=True)
 
@@ -58,7 +68,7 @@ async def parse_pdf(doc_path, output_dir, end_page_id, is_ocr, formula_enable, t
         return local_md_dir, file_name
     except Exception as e:
         logger.exception(e)
-        return None
+        raise gr.Error(f"Failed to parse document with backend '{backend}': {e}") from e
 
 
 def compress_directory_to_zip(directory_path, output_zip_path):
@@ -380,6 +390,10 @@ def main(ctx,
     else:
         raise ValueError(f"Invalid latex delimiters type: {latex_delimiters_type}.")
 
+    default_backend, default_server_url = get_service_defaults()
+    if default_backend.endswith("http-client"):
+        http_client_enable = True
+
     vlm_engine = get_vlm_engine("auto", is_async=True)
     if vlm_engine in ["transformers", "mlx-engine"]:
         http_client_enable = True
@@ -409,12 +423,12 @@ def main(ctx,
                     max_pages = gr.Slider(1, max_convert_pages, max_convert_pages, step=1, label=i18n("max_pages"))
                 with gr.Row():
                     drop_list = ["pipeline", "vlm-auto-engine", "hybrid-auto-engine"]
-                    preferred_option = "hybrid-auto-engine"
                     if http_client_enable:
                         drop_list.extend(["vlm-http-client", "hybrid-http-client"])
+                    preferred_option = default_backend if default_backend in drop_list else "hybrid-auto-engine"
                     backend = gr.Dropdown(drop_list, label=i18n("backend"), value=preferred_option, info=get_backend_info(preferred_option))
-                with gr.Row(visible=False) as client_options:
-                    url = gr.Textbox(label=i18n("server_url"), value='http://localhost:30000', placeholder='http://localhost:30000', info=i18n("server_url_info"))
+                with gr.Row(visible="http-client" in preferred_option) as client_options:
+                    url = gr.Textbox(label=i18n("server_url"), value=default_server_url, placeholder='http://localhost:30000', info=i18n("server_url_info"))
                 with gr.Row(equal_height=True):
                     with gr.Column():
                         gr.Markdown(i18n("recognition_options"))

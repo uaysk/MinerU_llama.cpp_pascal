@@ -29,6 +29,16 @@
 
 [English](README.md) | [简体中文](README_zh-CN.md)
 
+> This repository is a fork of [opendatalab/MinerU](https://github.com/opendatalab/MinerU) with additional runtime and deployment changes for the local Docker, GGUF, `hybrid-auto-engine`, and `vlm-http-client` workflows used here.
+
+## Runtime Notes
+
+- The current Docker runtime in this repository is configured for `api` and `gradio` profiles, with `hybrid-auto-engine` and `vlm-http-client` verified as the supported parsing paths.
+- `hybrid-auto-engine` requires local `torch` and pipeline models. In the current image it is built for GPU execution and is the recommended path for multilingual OCR, including Korean scanned documents.
+- `vlm-http-client` is configured to use an external OpenAI-compatible server through `MINERU_VL_SERVER` or `MINERU_OPENAI_SERVER_URL`, with auth from `MINERU_VL_API_KEY`. The current Gradio and API defaults read these environment variables.
+- When serving `MinerU2.5-2509-1.2B` through `llama.cpp` or `llama-swap` on the GGUF path, `llama-server` must be started with `--special`. Without it, MinerU layout special tokens are stripped and `vlm-http-client` may return empty parsing results.
+- With the current `MinerU2.5-2509-1.2B` GGUF deployment, `vlm-http-client` should be treated as Chinese/English-oriented. Korean OCR quality is not reliable on this path. For Korean and other multilingual scanned documents, use `hybrid-auto-engine` or another hybrid backend instead of `vlm-http-client`.
+
 <!-- hot link -->
 
 <p align="center">

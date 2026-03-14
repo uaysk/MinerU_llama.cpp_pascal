@@ -80,6 +80,27 @@ def create_app():
 app = create_app()
 
 
+def resolve_service_defaults(config: dict, backend: Optional[str], server_url: Optional[str]) -> tuple[str, Optional[str], dict]:
+    parse_config = dict(config)
+
+    default_backend = parse_config.pop("backend", None) or os.getenv(
+        "MINERU_DEFAULT_BACKEND"
+    )
+    default_server_url = (
+        parse_config.pop("server_url", None)
+        or os.getenv("MINERU_OPENAI_SERVER_URL")
+        or os.getenv("MINERU_VL_SERVER")
+    )
+
+    selected_backend = backend
+    if selected_backend == "hybrid-auto-engine" and default_backend:
+        selected_backend = default_backend
+
+    selected_server_url = server_url or default_server_url
+
+    return selected_backend, selected_server_url, parse_config
+
+
 def sanitize_filename(filename: str) -> str:
     """
     格式化压缩文件的文件名
@@ -199,6 +220,9 @@ async def parse_pdf(
 ):
     # 获取命令行配置参数
     config = getattr(app.state, "config", {})
+    backend, server_url, parse_config = resolve_service_defaults(
+        config, backend, server_url
+    )
 
     try:
         # 创建唯一的输出目录
@@ -266,7 +290,7 @@ async def parse_pdf(
             f_dump_content_list=return_content_list,
             start_page_id=start_page_id,
             end_page_id=end_page_id,
-            **config,
+            **parse_config,
         )
 
         # 根据 response_format_zip 决定返回类型
