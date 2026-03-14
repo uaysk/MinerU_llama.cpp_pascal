@@ -38,6 +38,7 @@
 - `vlm-http-client` is configured to use an external OpenAI-compatible server through `MINERU_VL_SERVER` or `MINERU_OPENAI_SERVER_URL`, with auth from `MINERU_VL_API_KEY`. The current Gradio and API defaults read these environment variables.
 - When serving `MinerU2.5-2509-1.2B` through `llama.cpp` or `llama-swap` on the GGUF path, `llama-server` must be started with `--special`. Without it, MinerU layout special tokens are stripped and `vlm-http-client` may return empty parsing results.
 - With the current `MinerU2.5-2509-1.2B` GGUF deployment, `vlm-http-client` should be treated as Chinese/English-oriented. Korean OCR quality is not reliable on this path. For Korean and other multilingual scanned documents, use `hybrid-auto-engine` or another hybrid backend instead of `vlm-http-client`.
+- When calling the API for Korean documents, explicitly set `backend=hybrid-auto-engine` and pass `lang_list=korean`. Relying on `vlm-http-client` or the default Chinese language setting will usually produce incorrect Korean OCR output.
 
 <!-- hot link -->
 
